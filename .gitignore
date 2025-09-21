@@ -1,6 +1,18 @@
-node_modules/
-.env
-.env.local
-.vercel
-uploads/
+﻿# OS
 .DS_Store
+Thumbs.db
+
+# Node/Tools
+node_modules/
+npm-debug.log*
+yarn-error.log*
+.pnpm-store/
+
+# Build/Cache
+dist/
+build/
+.cache/
+.netlify/
+
+# Misc
+*.log
