@@ -1,37 +1,55 @@
-# Daredevil Fan Site
+# CMOShop
 
-A fan site for Daredevil with an interactive image gallery.
+CMOShop is a simple affiliate storefront that highlights categories and products and routes Buy clicks through your domain to external stores (Amazon and others).
+
+## Features
+- Hero section, newsletter, brand logos
+- Category tiles auto-built from products
+- Product grid with search and filtering
+- Outbound affiliate routing via `/go/<slug>`
+- Local product images in `assets/products/` so cards always render
+
+## Project Structure
+```
+index.html                # Main site
+go/index.html             # Client-side redirector: /go/<slug>
+assets/products/          # Product images (SVG placeholders + any JPG/PNG you add)
+netlify.toml              # Redirects: /go/* -> /go/index.html?slug=:splat
+```
 
 ## Local Development
+You can serve this as a static site. For example:
 
-1. Install dependencies:
-```bash
-npm install
+```powershell
+# Windows PowerShell
+python -m http.server 8080
+# Visit http://127.0.0.1:8080
 ```
 
-2. Start the local server:
-```bash
-npm start
-```
+## Managing Products
+- Products are defined inline in `index.html` inside the `products` array
+- Each product has: `id, name, description, price, image, category, url`
+- `url` should point to `/go/index.html?slug=<your-slug>`
+- Map each slug to a destination in `go/index.html` inside the `routes` object
 
-3. Visit `http://localhost:8080` in your browser
+## Netlify Deployment
+This repo is zero-build. Use these settings:
+- Build command: (leave empty)
+- Publish directory: `/`
 
-## Deployment Options
+### Connect to Git and Deploy
+1. Push to a GitHub repo with a `main` branch
+2. In Netlify → Add new site → Import from Git → Select repo
+3. Confirm build settings above → Deploy site
 
-### Option 1: GitHub Pages (Free)
-1. Create a GitHub repository
-2. Push this code to the repository
-3. Enable GitHub Pages in the repository settings
-4. Your site will be live at `https://[username].github.io/[repository-name]`
+### Custom Domain (cmoshop.net)
+1. Netlify → Site settings → Domain management → Add custom domain → `cmoshop.net`
+2. Follow Netlify DNS instructions (CNAME for `www`, ALIAS/A for apex)
+3. Enable HTTPS with Let’s Encrypt in Netlify
 
-### Option 2: Netlify (Free)
-1. Sign up for a Netlify account
-2. Connect your GitHub repository
-3. Deploy from Netlify dashboard
-4. Your site will get a custom URL like `https://your-site-name.netlify.app`
+## Updating Links
+- Amazon Associates tag is set in `go/index.html` (variable `tag`). Update it to your tag.
+- For non-Amazon products, set the slug’s URL directly (e.g., your Teespring/Creator-Spring product link)
 
-### Option 3: Vercel (Free)
-1. Sign up for a Vercel account
-2. Connect your GitHub repository
-3. Deploy from Vercel dashboard
-4. Your site will get a custom URL like `https://your-site-name.vercel.app`
+## Notes
+- For any product image you want to guarantee, add a local file under `assets/products/` and point the product’s `image` to it.
