@@ -1,257 +1,180 @@
-// Store uploaded images in localStorage
-let uploadedImages = JSON.parse(localStorage.getItem('daredevilGallery')) || [];
-let galleryImages = [];
-
 document.addEventListener('DOMContentLoaded', () => {
-    console.log('DOM Content Loaded');
+    // Get all DOM elements
+    const timeButtons = document.querySelectorAll('.time-btn');
+    const results = document.getElementById('results');
+    const songList = document.getElementById('songList');
+    const addSongBtn = document.getElementById('addSong');
+    const songNameInput = document.getElementById('songName');
+    const playCountInput = document.getElementById('playCount');
     
-    const imageInput = document.getElementById('imageInput');
-    const galleryGrid = document.getElementById('galleryGrid');
+    // Store songs in memory
+    let songs = [];
 
-    // Create status element
-    const uploadStatus = document.createElement('div');
-    uploadStatus.id = 'uploadStatus';
-    document.body.appendChild(uploadStatus);
+    // Initialize button state
+    addSongBtn.disabled = true;
 
-    // Load existing images from localStorage
-    const savedImages = JSON.parse(localStorage.getItem('galleryImages') || '[]');
-    savedImages.forEach(imageData => addImageToGallery(imageData));
-
-    imageInput.addEventListener('change', async function(event) {
-        const file = event.target.files[0];
-        if (file) {
-            try {
-                // Validate file type
-                if (!file.type.startsWith('image/')) {
-                    showStatus('Please select an image file', 'error');
-                    return;
-                }
-
-                // Check file size (limit to 2MB to be safe with localStorage)
-                if (file.size > 2 * 1024 * 1024) {
-                    showStatus('Image must be less than 2MB', 'error');
-                    return;
-                }
-
-                showStatus('Processing image...', 'info');
-
-                // Convert to base64
-                const base64Image = await toBase64(file);
-                
-                // Add to gallery
-                addImageToGallery(base64Image);
-                
-                // Save to localStorage
-                const savedImages = JSON.parse(localStorage.getItem('galleryImages') || '[]');
-                savedImages.push(base64Image);
-                localStorage.setItem('galleryImages', JSON.stringify(savedImages));
-
-                // Clear the input
-                imageInput.value = '';
-                showStatus('Image added successfully!', 'success');
-            } catch (error) {
-                console.error('Error handling image:', error);
-                showStatus(error.message || 'Failed to process image. Please try again.', 'error');
-            }
-        }
+    // Time button click handlers
+    timeButtons.forEach(button => {
+        button.addEventListener('click', () => {
+            const hoursPerDay = parseFloat(button.dataset.hours);
+            updateActiveButton(button);
+            calculateEarnings(hoursPerDay);
+        });
     });
 
-    // Helper function to convert File to base64
-    function toBase64(file) {
-        return new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            reader.readAsDataURL(file);
-            reader.onload = () => resolve(reader.result);
-            reader.onerror = error => reject(error);
-        });
+    function updateActiveButton(clickedButton) {
+        timeButtons.forEach(btn => btn.classList.remove('active'));
+        clickedButton.classList.add('active');
     }
 
-    function addImageToGallery(imageData) {
-        const container = document.createElement('div');
-        container.className = 'gallery-item';
-        
-        const img = document.createElement('img');
-        img.src = imageData;
-        img.alt = 'Gallery Image';
-        img.loading = 'lazy';
-        
-        // Add loading indicator
-        img.style.opacity = '0';
-        img.onload = () => {
-            img.style.transition = 'opacity 0.3s ease-in';
-            img.style.opacity = '1';
+    // Song input handlers
+    songNameInput.addEventListener('input', validateInput);
+    playCountInput.addEventListener('input', validateInput);
+    
+    // Add song button handler
+    addSongBtn.addEventListener('click', addSongFromInput);
+
+    // Enter key handler for both input fields
+    songNameInput.addEventListener('keydown', handleEnterKey);
+    playCountInput.addEventListener('keydown', handleEnterKey);
+
+    function handleEnterKey(e) {
+        if (e.key === 'Enter') {
+            e.preventDefault(); // Prevent form submission
+            if (!addSongBtn.disabled) {
+                addSongFromInput();
+            }
+        }
+    }
+
+    function validateInput() {
+        const songName = songNameInput.value.trim();
+        const playCount = parseInt(playCountInput.value) || 0;
+        addSongBtn.disabled = !(songName && playCount > 0);
+    }
+
+    function addSongFromInput() {
+        const songName = songNameInput.value.trim();
+        const playCount = parseInt(playCountInput.value) || 0;
+
+        if (songName && playCount > 0) {
+            addSong(songName, playCount);
+            songNameInput.value = '';
+            playCountInput.value = '1';
+            addSongBtn.disabled = true;
+            songNameInput.focus();
+            updateSongStats();
+        }
+    }
+
+    function addSong(name, count) {
+        const song = {
+            name: name,
+            count: count,
+            id: Date.now()
         };
-        
-        const deleteBtn = document.createElement('button');
-        deleteBtn.className = 'delete-btn';
-        deleteBtn.innerHTML = '×';
-        deleteBtn.onclick = function() {
-            if (confirm('Delete this image?')) {
-                container.remove();
-                // Remove from localStorage
-                const savedImages = JSON.parse(localStorage.getItem('galleryImages') || '[]');
-                const updatedImages = savedImages.filter(data => data !== imageData);
-                localStorage.setItem('galleryImages', JSON.stringify(updatedImages));
-                showStatus('Image deleted', 'success');
-            }
-        };
-        
-        container.appendChild(img);
-        container.appendChild(deleteBtn);
-        galleryGrid.appendChild(container);
+        songs.push(song);
+        renderSong(song);
     }
 
-    function showStatus(message, type) {
-        uploadStatus.textContent = message;
-        uploadStatus.className = `status ${type}`;
-        uploadStatus.style.display = 'block';
-        
-        if (type === 'success' || type === 'error') {
-            setTimeout(() => {
-                uploadStatus.style.display = 'none';
-            }, 3000);
+    function deleteSong(songId) {
+        // Remove from array
+        songs = songs.filter(song => song.id !== songId);
+        // Remove from DOM
+        const songElement = document.querySelector(`[data-song-id="${songId}"]`);
+        if (songElement) {
+            songElement.remove();
         }
+        // Update stats
+        updateSongStats();
     }
 
-    // Smooth scrolling for navigation links
-    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-        anchor.addEventListener('click', function (e) {
-            e.preventDefault();
-            const targetId = this.getAttribute('href').slice(1);
-            const targetElement = document.getElementById(targetId);
-            if (targetElement) {
-                targetElement.scrollIntoView({
-                    behavior: 'smooth'
-                });
-            }
-        });
-    });
+    function renderSong(song) {
+        const songElement = document.createElement('div');
+        songElement.className = 'song-item';
+        songElement.dataset.songId = song.id;
+        
+        songElement.innerHTML = `
+            <span class="song-name">${song.name}</span>
+            <span class="play-count">×${song.count}</span>
+            <button class="delete-btn" aria-label="Delete song">✕</button>
+        `;
 
-    // Navigation background change on scroll
-    window.addEventListener('scroll', () => {
-        const nav = document.querySelector('nav');
-        if (window.scrollY > 50) {
-            nav.style.backgroundColor = 'rgba(0, 43, 91, 0.95)'; // Captain America blue
-        } else {
-            nav.style.backgroundColor = 'rgba(0, 43, 91, 0.9)';
+        // Add delete button handler
+        const deleteBtn = songElement.querySelector('.delete-btn');
+        deleteBtn.addEventListener('click', () => deleteSong(song.id));
+
+        songList.appendChild(songElement);
+        songList.scrollTop = songList.scrollHeight;
+    }
+
+    function updateSongStats() {
+        const totalSongs = songs.length;
+        const totalPlays = songs.reduce((sum, song) => sum + song.count, 0);
+        document.getElementById('totalSongs').textContent = totalSongs;
+        document.getElementById('totalPlays').textContent = totalPlays;
+    }
+
+    function calculateEarnings(hoursPerDay) {
+        // Monthly calculations
+        const monthlyHours = hoursPerDay * 30;
+        
+        // YouTube earnings
+        const monthlyViews = monthlyHours * 100;
+        const youtubeEarnings = (monthlyViews / 1000) * 4;
+        
+        // Teaching earnings
+        const teachingHours = monthlyHours * 0.25;
+        const teachingEarnings = teachingHours * 40;
+        
+        // Gig earnings
+        const monthlyGigs = Math.floor(monthlyHours / 20);
+        const gigEarnings = monthlyGigs * 150;
+        
+        // Total earnings
+        const totalEarnings = youtubeEarnings + teachingEarnings + gigEarnings;
+
+        // Update UI
+        document.getElementById('youtubeEarnings').textContent = `$${Math.round(youtubeEarnings)}`;
+        document.getElementById('teachingEarnings').textContent = `$${Math.round(teachingEarnings)}`;
+        document.getElementById('gigEarnings').textContent = `$${Math.round(gigEarnings)}`;
+        document.getElementById('totalEarnings').textContent = `$${Math.round(totalEarnings)}`;
+
+        // Show results section
+        results.classList.remove('hidden');
+    }
+
+    // Simple download function
+    function downloadFile() {
+        const downloadUrl = document.getElementById('downloadUrl');
+        const status = document.getElementById('status');
+        const url = downloadUrl.value.trim();
+        
+        if (!url) {
+            status.textContent = 'Please enter a valid URL';
+            status.className = 'status error';
+            return;
         }
-    });
 
-    // Shield animation for loading states
-    const addShieldLoader = (element) => {
-        const loader = document.createElement('div');
-        loader.className = 'shield-loader';
-        element.appendChild(loader);
-        setTimeout(() => loader.remove(), 2000);
-    };
-
-    // Interactive character cards
-    document.querySelectorAll('.character-card').forEach(card => {
-        card.addEventListener('mouseenter', () => {
-            card.style.transform = 'scale(1.05) rotate(2deg)';
-            card.style.boxShadow = '0 8px 16px rgba(0, 43, 91, 0.3)';
-        });
-
-        card.addEventListener('mouseleave', () => {
-            card.style.transform = 'scale(1) rotate(0)';
-            card.style.boxShadow = '0 4px 8px rgba(0, 0, 0, 0.2)';
-        });
-    });
-
-    // Dynamic hero showcase
-    const heroImage = document.querySelector('.main-hero-image img');
-    if (heroImage) {
-        heroImage.addEventListener('load', () => {
-            heroImage.style.opacity = '1';
-            heroImage.style.transform = 'scale(1)';
-        });
+        // Create a direct download link
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = ''; // This will use the original filename
+        link.target = '_blank'; // Open in new tab as fallback
+        link.style.display = 'none';
+        
+        document.body.appendChild(link);
+        link.click();
+        
+        // Clean up
+        setTimeout(() => {
+            document.body.removeChild(link);
+            status.textContent = 'Download started!';
+            status.className = 'status success';
+            downloadUrl.value = '';
+        }, 100);
     }
 
-    // Contact form handling with shield animation
-    const contactForm = document.getElementById('contact-form');
-    if (contactForm) {
-        contactForm.addEventListener('submit', (e) => {
-            e.preventDefault();
-            addShieldLoader(contactForm);
-            setTimeout(() => {
-                alert('Thank you for your message. We will get back to you soon.');
-                contactForm.reset();
-            }, 2000);
-        });
-    }
-
-    // Enhanced fade-in animation for sections
-    const observerOptions = {
-        threshold: 0.2
-    };
-
-    const observer = new IntersectionObserver((entries) => {
-        entries.forEach(entry => {
-            if (entry.isIntersecting) {
-                entry.target.classList.add('fade-in');
-                if (entry.target.classList.contains('hero-section')) {
-                    entry.target.classList.add('shield-reveal');
-                }
-            }
-        });
-    }, observerOptions);
-
-    document.querySelectorAll('section').forEach(section => {
-        section.style.opacity = '0';
-        section.style.transform = 'translateY(20px)';
-        section.style.transition = 'all 0.8s cubic-bezier(0.4, 0, 0.2, 1)';
-        observer.observe(section);
-    });
-
-    // Intersection observer code
-    const observerOptions2 = {
-        threshold: 0.1
-    };
-
-    const observer2 = new IntersectionObserver(entries => {
-        entries.forEach(entry => {
-            if (entry.isIntersecting) {
-                entry.target.style.opacity = 1;
-                entry.target.style.transform = 'translateY(0)';
-            }
-        });
-    }, observerOptions2);
-
-    document.querySelectorAll('section').forEach(section => {
-        section.style.opacity = 0;
-        section.style.transform = 'translateY(50px)';
-        section.style.transition = 'all 0.8s cubic-bezier(0.4, 0, 0.2, 1)';
-        observer2.observe(section);
-    });
-
-    // Mobile menu toggle
-    const hamburger = document.querySelector('.hamburger');
-    const navMenu = document.querySelector('.nav-menu');
-    const navLinks = document.querySelectorAll('.nav-menu a');
-
-    function toggleMenu() {
-        hamburger.classList.toggle('active');
-        navMenu.classList.toggle('active');
-    }
-
-    // Close menu when clicking outside
-    document.addEventListener('click', (e) => {
-        if (!hamburger.contains(e.target) && !navMenu.contains(e.target)) {
-            hamburger.classList.remove('active');
-            navMenu.classList.remove('active');
-        }
-    });
-
-    hamburger.addEventListener('click', (e) => {
-        e.stopPropagation();
-        toggleMenu();
-    });
-
-    // Close menu when a link is clicked
-    navLinks.forEach(link => {
-        link.addEventListener('click', () => {
-            hamburger.classList.remove('active');
-            navMenu.classList.remove('active');
-        });
-    });
+    // Add click event listener to the download button
+    document.getElementById('downloadBtn').onclick = downloadFile;
 });

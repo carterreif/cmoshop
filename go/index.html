@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Redirecting...</title>
+  <meta name="referrer" content="no-referrer" />
+  <style>
+    body{font-family:Segoe UI,Arial,sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;background:#0b0c10;color:#cfd3d6}
+    .card{background:#111318;border:1px solid #1f232a;border-radius:12px;padding:24px;max-width:560px;box-shadow:0 10px 30px rgba(0,0,0,.35)}
+    .small{opacity:.75;font-size:.9rem}
+    a{color:#61dafb}
+    code{background:#1b1e24;padding:2px 6px;border-radius:6px}
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Taking you to the deal…</h1>
+    <p class="small">If you are not redirected automatically, use the link below.</p>
+    <p id="linkWrap"><a id="outLink" href="#" rel="nofollow sponsored noopener" target="_blank">Open link</a></p>
+    <p class="small">Source: <code id="source"></code></p>
+  </div>
+
+  <script>
+    // Map your slugs to affiliate URLs here
+    const tag = 'yourtag-20'; // TODO: replace with your Amazon Associates tag
+    const routes = {
+      // Products
+      'stay-metal-shirt': 'https://cartersmerchobsession.creator-spring.com/listing/stay-metal-tshirt',
+      'cmo-hoodie': `https://www.amazon.com/s?k=hoodie+metal+band&tag=${tag}`,
+      'disturbed-tee': `https://www.amazon.com/s?k=disturbed+band+t+shirt&tag=${tag}`,
+      'beginner-drum-set': `https://www.amazon.com/s?k=beginner+drum+set&tag=${tag}`,
+      'guitar-hero': `https://www.amazon.com/s?k=guitar+hero&tag=${tag}`,
+      'megadeth-patch': `https://www.amazon.com/s?k=megadeth+patch&tag=${tag}`,
+      'liquid-death': `https://www.amazon.com/s?k=liquid+death&tag=${tag}`,
+      'metallica-poster': `https://www.amazon.com/s?k=metallica+poster&tag=${tag}`,
+      'pantera-sticker': `https://www.amazon.com/s?k=pantera+sticker&tag=${tag}`,
+      'metallica-shirt': `https://www.amazon.com/s?k=metallica+shirt&tag=${tag}`,
+      'disturbed-hoodie': `https://www.amazon.com/s?k=disturbed+hoodie&tag=${tag}`,
+      "lars-drumsticks": 'https://amzn.to/3VXeBi4',
+      'lars-scary-guy-sticks': 'https://amzn.to/3IyaaXW'
+    };
+
+    function getSlug() {
+      const u = new URL(window.location.href);
+      // prefer explicit query param
+      const q = u.searchParams.get('slug');
+      if (q) return q;
+      // try path like /go/<slug>
+      const parts = u.pathname.split('/').filter(Boolean);
+      const idx = parts.indexOf('go');
+      if (idx >= 0 && parts[idx+1]) return parts[idx+1];
+      // hash fallback
+      if (u.hash) return u.hash.replace(/^#/, '');
+      return null;
+    }
+
+    const slug = getSlug();
+    const dest = slug && routes[slug];
+    const link = document.getElementById('outLink');
+    const source = document.getElementById('source');
+
+    if (dest) {
+      link.href = dest;
+      source.textContent = slug;
+      // Delay a tick to allow analytics if needed
+      setTimeout(() => {
+        try { window.location.replace(dest); } catch (e) { window.open(dest, '_blank', 'noopener'); }
+      }, 150);
+    } else {
+      link.textContent = 'Invalid link';
+      link.removeAttribute('href');
+      source.textContent = slug || 'none';
+    }
+  </script>
+  <noscript>
+    <p>JavaScript is required to redirect you. Please enable it and try again.</p>
+  </noscript>
+</body>
+</html>
