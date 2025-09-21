@@ -286,7 +286,7 @@
                 <span class="h6 mb-0">$${p.price}</span>
                 <a class="btn btn-primary btn-sm" href="${p.url || '#'}" target="_blank" rel="nofollow sponsored noopener">Buy</a>
               </div>
-              ${(adminMode || p.id === 11) ? `<div class="mt-2 text-end"><button class="btn btn-sm btn-outline-secondary" onclick="handleUpload(${p.id})">Upload Image</button></div>` : ''}
+              <div class="mt-2 text-end"><button class="btn btn-sm btn-outline-secondary" onclick="handleUpload(${p.id})">Upload Image</button></div>
             </div>
           </div>
         </div>`;
